@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator</title>
+</head>
+<body>
+    <h1>Real-time Calculator</h1>
+    <input type="text" id="expression" placeholder="Enter expression" oninput="calculate()">
+    <button onclick="calculate()">Calculate</button>
+    <p id="result"></p>
+    <h2>History</h2>
+    <ul id="history"></ul>
+
+    <script>
+        async function calculate() {
+            const expression = document.getElementById('expression').value;
+            const resultElement = document.getElementById('result');
+            const historyElement = document.getElementById('history');
+
+            try {
+                const response = await fetch('/calculate/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken'),
+                    },
+                    body: JSON.stringify({ expression }),
+                });
+
+                const data = await response.json();
+
+                if ('result' in data) {
+                    resultElement.innerText = `Result: ${data.result}`;
+                    loadHistory();
+                } else {
+                    resultElement.innerText = `Error: ${data.error}`;
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function loadHistory() {
+            const historyElement = document.getElementById('history');
+
+            try {
+                const response = await fetch('/history/');
+                const data = await response.json();
+
+                historyElement.innerHTML = '';
+
+                for (const entry of data.history) {
+                    const listItem = document.createElement('li');
+                    listItem.innerText = `${entry.expression} = ${entry.result}`;
+                    historyElement.appendChild(listItem);
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        window.onload = loadHistory;
+    </script>
+</body>
+</html>
